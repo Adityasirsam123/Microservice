@@ -1,22 +1,44 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('docker-cred') // Jenkins ID for DockerHub credentials
+        DOCKERHUB_USERNAME = "${DOCKER_HUB_CREDENTIALS_USR}"
+        DOCKERHUB_PASSWORD = "${DOCKER_HUB_CREDENTIALS_PSW}"
+        IMAGE_NAME = "aadityasirsam/${env.BRANCH_NAME}:latest"
+    }
+
     stages {
-        stage('Deploy To Kubernetes') {
+        stage('Checkout') {
             steps {
-                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'EKS-1', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', serverUrl: 'https://9F39F577334FF23706994135261985F2.gr7.ap-south-1.eks.amazonaws.com']]) {
-                    sh "kubectl apply -f deployment-service.yml"
-                    
+                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/Adityasirsam123/Microservice.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_NAME} ."
                 }
             }
         }
-        
-        stage('verify Deployment') {
+
+        stage('Push Docker Image') {
             steps {
-                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'EKS-1', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', serverUrl: 'https://9F39F577334FF23706994135261985F2.gr7.ap-south-1.eks.amazonaws.com']]) {
-                    sh "kubectl get svc -n webapps"
+                script {
+                    sh "echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin"
+                    sh "docker push ${IMAGE_NAME}"
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Successfully built and pushed ${IMAGE_NAME}"
+        }
+        failure {
+            echo "❌ Failed to build/push Docker image for ${env.BRANCH_NAME}"
         }
     }
 }
