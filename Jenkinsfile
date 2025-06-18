@@ -17,8 +17,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh "docker build -t ${IMAGE_NAME} ."
+                dir('src/cartservice') {
+                    script {
+                        sh "docker build -t ${IMAGE_NAME} ."
+                    }
                 }
             }
         }
