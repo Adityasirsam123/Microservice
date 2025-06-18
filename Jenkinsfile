@@ -11,16 +11,16 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // If cartservice is a branch and starts at "src/cartservice"
+                // This checks out branch "cartservice" directly
                 git branch: "${env.BRANCH_NAME}", url: 'https://github.com/Adityasirsam123/Microservice.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                // No need for dir() if Dockerfile is at repo root after checkout
                 script {
-                    sh "docker build -t ${IMAGE_NAME} -f src/cartservice/Dockerfile src/cartservice"
+                    // Dockerfile is in the repo root of this branch
+                    sh "docker build -t ${IMAGE_NAME} ."
                 }
             }
         }
